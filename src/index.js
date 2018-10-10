@@ -8,7 +8,9 @@ import {
   TextInput,
   AsyncStorage,
   ActivityIndicator,
-  Button
+  Button,
+  TouchableWithoutFeedback,
+  Keyboard
 } from 'react-native';
 import uuid from 'uuid/v4';
 
@@ -20,7 +22,7 @@ import debounce from './util/debounce';
 
 const STORAGE_KEY = 'GROCERY_LIST';
 const initialState = {
-  items: [],
+  items: SAMPLE_DATA,
   completedItems: [],
   favoriteItems: [],
   nextItem: '',
@@ -161,47 +163,55 @@ export default class App extends React.Component {
           />
         </Header>
 
-        <SectionList
-          keyExtractor={item => item.id}
-          keyboardShouldPersistTaps="always"
-          sections={[
-            { title: 'GET', data: items },
-            { title: 'CART', data: completedItems }
-          ]}
-          renderSectionHeader={({ section }) => (
-            <SectionHeader title={section.title} />
-          )}
-          renderItem={({ item, index, section }) => {
-            return (
-              <ListItem
-                name={item.name}
-                favorite={item.favorite}
-                onFavorite={() => this.handleFavorite(index)}
-                onComplete={() => this.handleComplete(index)}
-                onDelete={() => this.handleDelete(index)}
-                completed={section.title === 'CART'}
-              />
-            );
-          }}
-          ItemSeparatorComponent={() => <View style={styles.border} />}
-          renderSectionFooter={({ section }) => {
-            if (section.title === 'GET' && section.data.length === 0) {
+        <SafeAreaView style={{ flex: 1 }}>
+          <SectionList
+            keyExtractor={item => item.id}
+            // keyboardShouldPersistTaps="always"
+            sections={[
+              { title: 'GET', data: items },
+              { title: 'CART', data: completedItems }
+            ]}
+            renderSectionHeader={({ section }) => (
+              <SectionHeader title={section.title} />
+            )}
+            renderItem={({ item, index, section }) => {
               return (
-                <View>
-                  <Button title="Create a new list" onPress={this.resetList} />
-                </View>
+                <ListItem
+                  name={item.name}
+                  favorite={item.favorite}
+                  onFavorite={() => this.handleFavorite(index)}
+                  onComplete={() => this.handleComplete(index)}
+                  onDelete={() => this.handleDelete(index)}
+                  completed={section.title === 'CART'}
+                />
               );
-            } else if (section.title === 'CART' && section.data.length === 0) {
-              return (
-                <View>
-                  <Text>SHOP! NEED SNACKS</Text>
-                </View>
-              );
-            }
+            }}
+            ItemSeparatorComponent={() => <View style={styles.border} />}
+            renderSectionFooter={({ section }) => {
+              if (section.title === 'GET' && section.data.length === 0) {
+                return (
+                  <View>
+                    <Button
+                      title="Create a new list"
+                      onPress={this.resetList}
+                    />
+                  </View>
+                );
+              } else if (
+                section.title === 'CART' &&
+                section.data.length === 0
+              ) {
+                return (
+                  <View>
+                    <Text>SHOP! NEED SNACKS</Text>
+                  </View>
+                );
+              }
 
-            return null;
-          }}
-        />
+              return null;
+            }}
+          />
+        </SafeAreaView>
       </React.Fragment>
     );
   }
