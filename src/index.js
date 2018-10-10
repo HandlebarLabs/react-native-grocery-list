@@ -15,12 +15,14 @@ import uuid from 'uuid/v4';
 import SAMPLE_DATA from './data/template';
 import ListItem from './components/ListItem';
 import SectionHeader from './components/SectionHeader';
+import Header from './components/Header';
 import debounce from './util/debounce';
 
+const STORAGE_KEY = 'GROCERY_LIST';
 const initialState = {
-  listId: 'TEMP',
-  items: SAMPLE_DATA,
+  items: [],
   completedItems: [],
+  favoriteItems: [],
   nextItem: '',
   loading: true
 };
@@ -38,7 +40,7 @@ export default class App extends React.Component {
 
   cacheItems = debounce(() => {
     AsyncStorage.setItem(
-      this.state.listId,
+      STORAGE_KEY,
       JSON.stringify({
         ...this.state,
         loading: initialState.loading
@@ -47,7 +49,7 @@ export default class App extends React.Component {
   }, 500);
 
   rehydrateItems = () => {
-    AsyncStorage.getItem(this.state.listId).then(data => {
+    AsyncStorage.getItem(STORAGE_KEY).then(data => {
       this.setState({
         ...JSON.parse(data),
         loading: false
@@ -78,15 +80,22 @@ export default class App extends React.Component {
     this.input.blur();
     this.setState(state => {
       const items = [...state.items];
+      const favoriteItems = [...state.favoriteItems];
 
+      const favorite = !items[index].favorite;
       items[index] = {
         ...items[index],
-        favorite: !items[index].favorite
+        favorite
       };
+
+      if (favorite) {
+        favoriteItems.push(items[index]);
+      }
 
       return {
         ...state,
-        items
+        items,
+        favoriteItems
       };
     });
   };
@@ -122,10 +131,11 @@ export default class App extends React.Component {
   };
 
   resetList = () => {
-    this.setState({
+    this.setState(state => ({
       ...initialState,
+      items: state.favoriteItems,
       loading: false
-    });
+    }));
   };
 
   render() {
@@ -136,25 +146,24 @@ export default class App extends React.Component {
     }
 
     return (
-      <SafeAreaView style={styles.container}>
-        <TextInput
-          onChangeText={nextItem => this.setState({ nextItem })}
-          onSubmitEditing={this.addItem}
-          placeholder="Add another item"
-          value={nextItem}
-          ref={input => {
-            this.input = input;
-          }}
-          blurOnSubmit={false}
-        />
-
-        {items.length === 0 && (
-          <View>
-            <Button title="Create a new list" onPress={this.resetList} />
-          </View>
-        )}
+      <React.Fragment>
+        <Header>
+          <TextInput
+            onChangeText={nextItem => this.setState({ nextItem })}
+            onSubmitEditing={this.addItem}
+            placeholder="Add an item"
+            value={nextItem}
+            ref={input => {
+              this.input = input;
+            }}
+            blurOnSubmit={false}
+            autoFocus
+          />
+        </Header>
 
         <SectionList
+          keyExtractor={item => item.id}
+          keyboardShouldPersistTaps="always"
           sections={[
             { title: 'GET', data: items },
             { title: 'CART', data: completedItems }
@@ -163,30 +172,37 @@ export default class App extends React.Component {
             <SectionHeader title={section.title} />
           )}
           renderItem={({ item, index, section }) => {
-            if (section.title === 'GET') {
+            return (
+              <ListItem
+                name={item.name}
+                favorite={item.favorite}
+                onFavorite={() => this.handleFavorite(index)}
+                onComplete={() => this.handleComplete(index)}
+                onDelete={() => this.handleDelete(index)}
+                completed={section.title === 'CART'}
+              />
+            );
+          }}
+          ItemSeparatorComponent={() => <View style={styles.border} />}
+          renderSectionFooter={({ section }) => {
+            if (section.title === 'GET' && section.data.length === 0) {
               return (
-                <ListItem
-                  name={item.name}
-                  favorite={item.favorite}
-                  onFavorite={() => this.handleFavorite(index)}
-                  onComplete={() => this.handleComplete(index)}
-                  onDelete={() => this.handleDelete(index)}
-                />
+                <View>
+                  <Button title="Create a new list" onPress={this.resetList} />
+                </View>
+              );
+            } else if (section.title === 'CART' && section.data.length === 0) {
+              return (
+                <View>
+                  <Text>SHOP! NEED SNACKS</Text>
+                </View>
               );
             }
 
-            return (
-              <View>
-                <Text>{item.name}</Text>
-              </View>
-            );
+            return null;
           }}
-          render
-          keyExtractor={item => item.id}
-          keyboardShouldPersistTaps="always"
-          ItemSeparatorComponent={() => <View style={styles.border} />}
         />
-      </SafeAreaView>
+      </React.Fragment>
     );
   }
 }

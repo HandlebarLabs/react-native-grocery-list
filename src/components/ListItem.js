@@ -33,9 +33,6 @@ const getImage = favorited => {
 class ListItem extends React.Component {
   constructor() {
     super();
-    this.state = {
-      completed: false
-    };
 
     this.rowOffset = new Animated.Value(0);
 
@@ -73,21 +70,8 @@ class ListItem extends React.Component {
     }
   };
 
-  handleCompletePress = () => {
-    this.setState(
-      state => ({
-        completed: true
-      }),
-      () => {
-        setTimeout(() => {
-          this.props.onComplete();
-        }, 250);
-      }
-    );
-  };
-
   render() {
-    const { name, onFavorite, favorite } = this.props;
+    const { name, onFavorite, favorite, onComplete } = this.props;
 
     const rowStyles = [
       styles.row,
@@ -102,12 +86,14 @@ class ListItem extends React.Component {
           <Text style={styles.deleteText}>Delete</Text>
         </View>
         <Animated.View style={rowStyles} {...this._panResponder.panHandlers}>
-          <TouchableOpacity onPress={this.handleCompletePress}>
-            <View style={styles.circleOutline}>
-              {this.state.completed && <View style={styles.circle} />}
-            </View>
-          </TouchableOpacity>
-          <Text>{name}</Text>
+          <View style={styles.left}>
+            <TouchableOpacity onPress={onComplete}>
+              <View style={styles.circleOutline}>
+                {this.props.completed && <View style={styles.circle} />}
+              </View>
+            </TouchableOpacity>
+            <Text style={styles.text}>{name}</Text>
+          </View>
           <TouchableOpacity onPress={onFavorite}>
             <Image source={getImage(favorite)} style={styles.star} />
           </TouchableOpacity>
@@ -138,7 +124,16 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     flexDirection: 'row',
-    backgroundColor: '#fff'
+    backgroundColor: '#fff',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
+  left: {
+    flexDirection: 'row',
+    justifyContent: 'center'
+  },
+  text: {
+    marginLeft: 10
   },
   circleOutline: {
     borderColor: '#1ca2fe',
