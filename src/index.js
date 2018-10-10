@@ -148,12 +148,11 @@ export default class App extends React.Component {
           blurOnSubmit={false}
         />
 
-        {items.length === 0 &&
-          completedItems.length > 1 && (
-            <View>
-              <Button title="Create a new list" onPress={this.resetList} />
-            </View>
-          )}
+        {items.length === 0 && (
+          <View>
+            <Button title="Create a new list" onPress={this.resetList} />
+          </View>
+        )}
 
         <SectionList
           sections={[
@@ -182,8 +181,10 @@ export default class App extends React.Component {
               </View>
             );
           }}
+          render
           keyExtractor={item => item.id}
           keyboardShouldPersistTaps="always"
+          ItemSeparatorComponent={() => <View style={styles.border} />}
         />
       </SafeAreaView>
     );
@@ -194,5 +195,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff'
+  },
+  border: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#d3d3d3'
   }
 });
