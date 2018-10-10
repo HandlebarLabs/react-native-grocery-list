@@ -78,38 +78,56 @@ export default class App extends React.Component {
     });
   };
 
-  handleFavorite = index => {
+  handleFavorite = (index, title) => {
     this.input.blur();
     this.setState(state => {
       const items = [...state.items];
+      const completedItems = [...state.completedItems];
       const favoriteItems = [...state.favoriteItems];
 
-      const favorite = !items[index].favorite;
-      items[index] = {
-        ...items[index],
-        favorite
-      };
+      if (title === 'GET') {
+        const favorite = !items[index].favorite;
+        items[index] = {
+          ...items[index],
+          favorite
+        };
+        if (favorite) {
+          favoriteItems.push(items[index]);
+        }
+      } else if (title === 'CART') {
+        const favorite = !completedItems[index].favorite;
 
-      if (favorite) {
-        favoriteItems.push(items[index]);
+        completedItems[index] = {
+          ...completedItems[index],
+          favorite
+        };
+        if (favorite) {
+          favoriteItems.push(completedItems[index]);
+        }
       }
 
       return {
         ...state,
         items,
-        favoriteItems
+        favoriteItems,
+        completedItems
       };
     });
   };
 
-  handleComplete = index => {
+  handleComplete = (index, title) => {
     this.input.blur();
     this.setState(state => {
       const items = [...state.items];
       const completedItems = [...state.completedItems];
 
-      const completedItem = items.splice(index, 1)[0];
-      completedItems.unshift(completedItem);
+      if (title === 'GET') {
+        const completedItem = items.splice(index, 1)[0];
+        completedItems.unshift(completedItem);
+      } else if (title === 'CART') {
+        const item = completedItems.splice(index, 1)[0];
+        items.unshift(item);
+      }
 
       return {
         ...state,
@@ -119,15 +137,22 @@ export default class App extends React.Component {
     });
   };
 
-  handleDelete = index => {
+  handleDelete = (index, title) => {
     this.input.blur();
     this.setState(state => {
       let items = [...state.items];
-      items.splice(index, 1);
+      let completedItems = [...state.completedItems];
+
+      if (title === 'GET') {
+        items.splice(index, 1);
+      } else if (title === 'CART') {
+        completedItems.splice(index, 1);
+      }
 
       return {
         ...state,
-        items
+        items,
+        completedItems
       };
     });
   };
@@ -179,9 +204,9 @@ export default class App extends React.Component {
                 <ListItem
                   name={item.name}
                   favorite={item.favorite}
-                  onFavorite={() => this.handleFavorite(index)}
-                  onComplete={() => this.handleComplete(index)}
-                  onDelete={() => this.handleDelete(index)}
+                  onFavorite={() => this.handleFavorite(index, section.title)}
+                  onComplete={() => this.handleComplete(index, section.title)}
+                  onDelete={() => this.handleDelete(index, section.title)}
                   completed={section.title === 'CART'}
                 />
               );
