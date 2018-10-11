@@ -157,12 +157,17 @@ export default class App extends React.Component {
     });
   };
 
-  resetList = () => {
-    this.setState(state => ({
-      ...initialState,
-      items: state.favoriteItems,
-      loading: false
-    }));
+  resetList = (fromFavorites = false) => {
+    this.setState(state => {
+      const items = fromFavorites ? state.favoriteItems : [];
+
+      return {
+        ...initialState,
+        items,
+        favoriteItems: state.favoriteItems,
+        loading: false
+      };
+    });
   };
 
   render() {
@@ -217,8 +222,12 @@ export default class App extends React.Component {
                 return (
                   <View>
                     <Button
-                      title="Create a new list"
-                      onPress={this.resetList}
+                      title="Create a new list from favorites"
+                      onPress={() => this.resetList(true)}
+                    />
+                    <Button
+                      title="Create a new blank list"
+                      onPress={() => this.resetList(false)}
                     />
                   </View>
                 );
