@@ -40,6 +40,26 @@ class ListItem extends React.Component {
     this._panResponder = this.createPanResponder();
   }
 
+  componentDidMount() {
+    if (this.props.nudgeOnLoad) {
+      this.nudgeRow();
+    }
+  }
+
+  nudgeRow = () => {
+    Animated.sequence([
+      Animated.timing(this.rowOffset, {
+        toValue: w.width * -0.25,
+        useNativeDriver: true
+      }),
+      Animated.timing(this.rowOffset, {
+        toValue: 0,
+        easing: Easing.bounce,
+        useNativeDriver: true
+      })
+    ]).start();
+  };
+
   createPanResponder = () =>
     PanResponder.create({
       onMoveShouldSetPanResponder: (evt, gestureState) => {
@@ -91,10 +111,34 @@ class ListItem extends React.Component {
       }
     ];
 
+    const deleteTextStyles = [
+      styles.deleteText,
+      {
+        transform: [
+          {
+            // Use interpolation to change text size
+            scale: this.rowOffset.interpolate({
+              inputRange: [w.width * -0.25, 0],
+              outputRange: [1, 0.5],
+              extrapolate: 'clamp'
+            })
+          },
+          {
+            // Use interpolation so the text can move w/ the row
+            translateX: this.rowOffset.interpolate({
+              inputRange: [w.width * -1, w.width * -0.4],
+              outputRange: [w.width * -0.5, 0],
+              extrapolate: 'clamp'
+            })
+          }
+        ]
+      }
+    ];
+
     return (
       <View style={styles.container}>
         <View style={styles.deleteRow}>
-          <Text style={styles.deleteText}>Delete</Text>
+          <Animated.Text style={deleteTextStyles}>Delete</Animated.Text>
         </View>
         <Animated.View style={rowStyles} {...this._panResponder.panHandlers}>
           <View style={styles.left}>
@@ -129,7 +173,8 @@ const styles = StyleSheet.create({
   },
   deleteText: {
     color: '#fff',
-    marginHorizontal: 20
+    marginHorizontal: 20,
+    fontWeight: 'bold'
   },
   row: {
     flex: 1,

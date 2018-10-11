@@ -252,6 +252,7 @@ export default class App extends React.Component {
                     this.handleDelete(index, section.completedList)
                   }
                   completed={section.completedList}
+                  nudgeOnLoad={!section.completedList && index === 0}
                 />
               );
             }}
