@@ -42,7 +42,6 @@ export default class App extends React.Component {
   componentDidMount() {
     // Once the component mounts rehydrate state from AsyncStorage.
     this.rehydrateItems();
-    this.setState({ hasShownNudge: true });
   }
 
   componentDidUpdate(prevProps, prevState) {
@@ -71,7 +70,8 @@ export default class App extends React.Component {
     AsyncStorage.getItem(STORAGE_KEY).then(data => {
       this.setState({
         ...JSON.parse(data),
-        loading: false
+        loading: false,
+        hasShownNudge: true
       });
     });
   };
@@ -90,10 +90,10 @@ export default class App extends React.Component {
       }
 
       return {
-        ...state,
         items: newItems,
         // The TextInput is controlled so we can reset the value via state.
-        nextItem: ''
+        nextItem: '',
+        hasShownNudge: true
       };
     });
   };
@@ -212,6 +212,13 @@ export default class App extends React.Component {
     });
   };
 
+  devReset = () => {
+    AsyncStorage.removeItem(STORAGE_KEY).then(() => {
+      this.setState({ ...initialState, loading: false });
+      alert('App has been reset!');
+    });
+  };
+
   renderItem = ({ item, index, section }) => {
     return (
       <ListItem
@@ -236,6 +243,7 @@ export default class App extends React.Component {
             title="Create a new list from favorites"
             onPress={() => this.resetList(true)}
           />
+          <View style={styles.emptyBuffer} />
           <Button
             title="Create a new blank list"
             onPress={() => this.resetList(false)}
@@ -261,13 +269,7 @@ export default class App extends React.Component {
     }
 
     return (
-      <DevLongPress
-        onLongPress={() => {
-          this.setState({ ...initialState, loading: false });
-          AsyncStorage.clear();
-          alert('App has been reset!');
-        }}
-      >
+      <DevLongPress onLongPress={this.devReset}>
         <Header>
           <TextInput
             onChangeText={nextItem => this.setState({ nextItem })}
@@ -276,6 +278,7 @@ export default class App extends React.Component {
             value={nextItem}
             blurOnSubmit={false}
             autoFocus
+            underlineColorAndroid="transparent"
           />
         </Header>
 
@@ -318,5 +321,9 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontWeight: 'bold'
+  },
+  emptyBuffer: {
+    backgroundColor: 'transparent',
+    height: 20
   }
 });
