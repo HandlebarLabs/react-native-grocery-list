@@ -57,7 +57,6 @@ export default class App extends React.Component {
     // When using AsyncStorage the item value must be a string so we call JSON.stringify on
     // this.state. This is an expensive operation so we use debounce to only call this function
     // every 500 milliseconds.
-    console.log(this.state);
     AsyncStorage.setItem(
       STORAGE_KEY,
       JSON.stringify({
@@ -213,14 +212,49 @@ export default class App extends React.Component {
     });
   };
 
+  renderItem = ({ item, index, section }) => {
+    return (
+      <ListItem
+        name={item.name}
+        favorite={item.favorite}
+        onFavorite={() => this.handleFavorite(index, section.completedList)}
+        onComplete={() => this.handleComplete(index, section.completedList)}
+        onDelete={() => this.handleDelete(index, section.completedList)}
+        completed={section.completedList}
+        nudgeOnLoad={
+          !section.completedList && index === 0 && !this.state.hasShownNudge
+        }
+      />
+    );
+  };
+
+  renderSectionFooter = ({ section }) => {
+    if (section.title === 'GET' && section.data.length === 0) {
+      return (
+        <View style={styles.emptyContainer}>
+          <Button
+            title="Create a new list from favorites"
+            onPress={() => this.resetList(true)}
+          />
+          <Button
+            title="Create a new blank list"
+            onPress={() => this.resetList(false)}
+          />
+        </View>
+      );
+    } else if (section.title === 'CART' && section.data.length === 0) {
+      return (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>SHOP! NEED SNACKS</Text>
+        </View>
+      );
+    }
+
+    return null;
+  };
+
   render() {
-    const {
-      nextItem,
-      items,
-      completedItems,
-      loading,
-      hasShownNudge
-    } = this.state;
+    const { nextItem, items, completedItems, loading } = this.state;
 
     if (loading) {
       return <ActivityIndicator />;
@@ -253,58 +287,12 @@ export default class App extends React.Component {
               { title: 'GET', data: items, completedList: false },
               { title: 'CART', data: completedItems, completedList: true }
             ]}
+            renderItem={this.renderItem}
+            renderSectionFooter={this.renderSectionFooter}
+            ItemSeparatorComponent={() => <View style={styles.border} />}
             renderSectionHeader={({ section }) => (
               <SectionHeader title={section.title} />
             )}
-            renderItem={({ item, index, section }) => {
-              return (
-                <ListItem
-                  name={item.name}
-                  favorite={item.favorite}
-                  onFavorite={() =>
-                    this.handleFavorite(index, section.completedList)
-                  }
-                  onComplete={() =>
-                    this.handleComplete(index, section.completedList)
-                  }
-                  onDelete={() =>
-                    this.handleDelete(index, section.completedList)
-                  }
-                  completed={section.completedList}
-                  nudgeOnLoad={
-                    !section.completedList && index === 0 && !hasShownNudge
-                  }
-                />
-              );
-            }}
-            ItemSeparatorComponent={() => <View style={styles.border} />}
-            renderSectionFooter={({ section }) => {
-              if (section.title === 'GET' && section.data.length === 0) {
-                return (
-                  <View>
-                    <Button
-                      title="Create a new list from favorites"
-                      onPress={() => this.resetList(true)}
-                    />
-                    <Button
-                      title="Create a new blank list"
-                      onPress={() => this.resetList(false)}
-                    />
-                  </View>
-                );
-              } else if (
-                section.title === 'CART' &&
-                section.data.length === 0
-              ) {
-                return (
-                  <View>
-                    <Text>SHOP! NEED SNACKS</Text>
-                  </View>
-                );
-              }
-
-              return null;
-            }}
           />
         </SafeAreaView>
       </DevLongPress>
@@ -322,5 +310,13 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: '#d3d3d3',
     marginLeft: 20
+  },
+  emptyContainer: {
+    marginVertical: 20,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  emptyText: {
+    fontWeight: 'bold'
   }
 });
