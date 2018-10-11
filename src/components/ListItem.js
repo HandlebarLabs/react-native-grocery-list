@@ -16,6 +16,8 @@ import {
 const w = Dimensions.get('window');
 const isAndroid = Platform.OS === 'android';
 
+// Get the correct image based on whether the item is a favorite (filled in star) and then get the
+// right icon based on the platform.
 const getImage = favorited => {
   if (isAndroid) {
     if (favorited) {
@@ -35,17 +37,19 @@ class ListItem extends React.Component {
     super();
 
     this.rowOffset = new Animated.Value(0);
-
     this._panResponder = this.createPanResponder();
   }
 
   createPanResponder = () =>
     PanResponder.create({
       onMoveShouldSetPanResponder: (evt, gestureState) => {
+        // If a user just taps the row don't do anything.
         return gestureState.dx < -5;
       },
       onPanResponderMove: (evt, gestureState) => {
+        // We only care if the gesture is to the left
         if (gestureState.dx < 0) {
+          // Set the animated value to the same distance as what the user has swiped.
           this.rowOffset.setValue(Math.floor(gestureState.dx));
         }
       },
@@ -54,14 +58,19 @@ class ListItem extends React.Component {
     });
 
   onResponderRelease = (evt, gestureState) => {
+    // If the swipe is greater than 40% then we've got a positive delete swipe
     if (Math.abs(gestureState.dx) > w.width * 0.4) {
       Animated.spring(this.rowOffset, {
         toValue: -w.width,
         useNativeDriver: true
-      }).start(() => {
+      }).start();
+      // Let the animation play out a bit. Makes it feel less abrupt
+      setTimeout(() => {
         this.props.onDelete();
-      });
+      }, 400);
     } else {
+      // If the swipe is less than 40% we'll view that as a negative delete swipe and reset the
+      // value, with a bit of bouncing as we go.
       Animated.timing(this.rowOffset, {
         toValue: 0,
         easing: Easing.bounce,
@@ -76,6 +85,8 @@ class ListItem extends React.Component {
     const rowStyles = [
       styles.row,
       {
+        // By using transform we can use useNativeDriver, allowing for a lower liklihood of jittery
+        // animations. Learn more: http://facebook.github.io/react-native/blog/2017/02/14/using-native-driver-for-animated.html
         transform: [{ translateX: this.rowOffset }]
       }
     ];

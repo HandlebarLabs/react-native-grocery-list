@@ -22,10 +22,13 @@ import debounce from './util/debounce';
 
 const STORAGE_KEY = 'GROCERY_LIST';
 const initialState = {
+  // When a user first uses the app show them what's possible! Prepopulate the app with some data,
+  // but only do it when they first install the app.
   items: SAMPLE_DATA,
   completedItems: [],
   favoriteItems: [],
   nextItem: '',
+  // Default to loading so an empty list isn't shown. Will only be shown very briefly.
   loading: true
 };
 
@@ -33,24 +36,33 @@ export default class App extends React.Component {
   state = initialState;
 
   componentDidMount() {
+    // Once the component mounts rehydrate state from AsyncStorage.
     this.rehydrateItems();
   }
 
   componentDidUpdate(prevProps, prevState) {
+    // componentDidUpdate will be called whenever state or props change, AFTER it has changed. Since
+    // no props are being passed to our component we know that this will only be called when our
+    // state changes, which we want to cache in its entirety. Therefore, call this.cacheItems every
+    // time the component updates.
     this.cacheItems();
   }
 
   cacheItems = debounce(() => {
+    // When using AsyncStorage the item value must be a string so we call JSON.stringify on
+    // this.state. This is an expensive operation so we use debounce to only call this function
+    // every 500 milliseconds.
     AsyncStorage.setItem(
       STORAGE_KEY,
       JSON.stringify({
-        ...this.state,
-        loading: initialState.loading
+        ...this.state
       })
     );
   }, 500);
 
   rehydrateItems = () => {
+    // Grab the data from AsyncStorage. Parse the string to a json object and put that data into
+    // component state. Set loading to false so that the loading indicator goes away.
     AsyncStorage.getItem(STORAGE_KEY).then(data => {
       this.setState({
         ...JSON.parse(data),
@@ -61,8 +73,10 @@ export default class App extends React.Component {
 
   addItem = () => {
     this.setState(state => {
+      // Make a shallow copy with array spread syntax to avoid mutating state.
       const newItems = [...state.items];
       if (state.nextItem.length > 0) {
+        // Add the new item to the start of the list rather than the end.
         newItems.unshift({
           id: uuid(),
           name: state.nextItem,
@@ -73,41 +87,54 @@ export default class App extends React.Component {
       return {
         ...state,
         items: newItems,
+        // The TextInput is controlled so we can reset the value via state.
         nextItem: ''
       };
     });
   };
 
-  handleFavorite = (index, title) => {
-    this.input.blur();
+  handleFavorite = (index, completedList) => {
     this.setState(state => {
+      // Make a shallow copies with array spread syntax to avoid mutating state.
       const items = [...state.items];
       const completedItems = [...state.completedItems];
       const favoriteItems = [...state.favoriteItems];
 
-      if (title === 'GET') {
-        const favorite = !items[index].favorite;
-        items[index] = {
-          ...items[index],
-          favorite
-        };
-        if (favorite) {
-          favoriteItems.push(items[index]);
-        }
-      } else if (title === 'CART') {
-        const favorite = !completedItems[index].favorite;
+      let favorite = false;
+
+      if (completedList) {
+        // If the item is already completed, pull the item off of the completed list and check its
+        // curring favorite status. Use "!" to change the value. false -> true, true -> false
+        favorite = !completedItems[index].favorite;
 
         completedItems[index] = {
+          // Copy over all properties of the existing item so the data structure stays the same but
+          // we don't have to manually define each property.
           ...completedItems[index],
+          // Update favorite, because that's what we're doing in the function.
           favorite
         };
-        if (favorite) {
-          favoriteItems.push(completedItems[index]);
-        }
+      } else {
+        // If the item hasn't been completed, pull the item off of the default list and check its
+        // curring favorite status. Use "!" to change the value. false -> true, true -> false
+        favorite = !items[index].favorite;
+
+        items[index] = {
+          // Copy over all properties of the existing item so the data structure stays the same but
+          // we don't have to manually define each property.
+          ...items[index],
+          // Update favorite, because that's what we're doing in the function.
+          favorite
+        };
+      }
+
+      // If the item has been favorited on this button press, add it to our favorite items list so
+      // we can use it to pre-populate a list in the future.
+      if (favorite) {
+        favoriteItems.push(items[index]);
       }
 
       return {
-        ...state,
         items,
         favoriteItems,
         completedItems
@@ -115,56 +142,65 @@ export default class App extends React.Component {
     });
   };
 
-  handleComplete = (index, title) => {
-    this.input.blur();
+  handleComplete = (index, completedList) => {
     this.setState(state => {
+      // Make a shallow copies with array spread syntax to avoid mutating state.
       const items = [...state.items];
       const completedItems = [...state.completedItems];
 
-      if (title === 'GET') {
-        const completedItem = items.splice(index, 1)[0];
-        completedItems.unshift(completedItem);
-      } else if (title === 'CART') {
+      if (completedList) {
+        // If the item was already completed, remove it from that list and add it to the start of
+        // the default list.
         const item = completedItems.splice(index, 1)[0];
+        // Add the item to the start of the list rather than the end.
         items.unshift(item);
+      } else {
+        // If the item has just been completed, remove it from the default list and add it to the
+        // completed list.
+        const completedItem = items.splice(index, 1)[0];
+        // Add the item to the start of the list rather than the end.
+        completedItems.unshift(completedItem);
       }
 
       return {
-        ...state,
         items,
         completedItems
       };
     });
   };
 
-  handleDelete = (index, title) => {
-    this.input.blur();
+  handleDelete = (index, completedList) => {
     this.setState(state => {
-      let items = [...state.items];
-      let completedItems = [...state.completedItems];
-
-      if (title === 'GET') {
-        items.splice(index, 1);
-      } else if (title === 'CART') {
+      if (completedList) {
+        // If we're deleting and the item has already been completed, remove it from the completed
+        // list. Make a shallow copy with array spread syntax to avoid mutating state.
+        let completedItems = [...state.completedItems];
         completedItems.splice(index, 1);
+        return {
+          completedItems
+        };
+      } else {
+        // If we're deleting and the item has NOT already been completed, remove it from the default
+        // list. Make a shallow copy with array spread syntax to avoid mutating state.
+        let items = [...state.items];
+        items.splice(index, 1);
+        return {
+          items
+        };
       }
-
-      return {
-        ...state,
-        items,
-        completedItems
-      };
     });
   };
 
   resetList = (fromFavorites = false) => {
     this.setState(state => {
-      const items = fromFavorites ? state.favoriteItems : [];
-
       return {
         ...initialState,
-        items,
+        // If we're creating a new list and pre-populating from favorites pull that data in,
+        // otherwise just set it to an empty array
+        items: fromFavorites ? state.favoriteItems : [],
+        // we want favorited items to live until they're not favorited, so don't use default setting
         favoriteItems: state.favoriteItems,
+        // Loading is only used when rehydrating state from AsyncStorage
         loading: false
       };
     });
@@ -185,9 +221,6 @@ export default class App extends React.Component {
             onSubmitEditing={this.addItem}
             placeholder="Add an item"
             value={nextItem}
-            ref={input => {
-              this.input = input;
-            }}
             blurOnSubmit={false}
             autoFocus
           />
@@ -198,8 +231,8 @@ export default class App extends React.Component {
             keyExtractor={item => item.id}
             // keyboardShouldPersistTaps="always"
             sections={[
-              { title: 'GET', data: items },
-              { title: 'CART', data: completedItems }
+              { title: 'GET', data: items, completedList: false },
+              { title: 'CART', data: completedItems, completedList: true }
             ]}
             renderSectionHeader={({ section }) => (
               <SectionHeader title={section.title} />
@@ -209,10 +242,16 @@ export default class App extends React.Component {
                 <ListItem
                   name={item.name}
                   favorite={item.favorite}
-                  onFavorite={() => this.handleFavorite(index, section.title)}
-                  onComplete={() => this.handleComplete(index, section.title)}
-                  onDelete={() => this.handleDelete(index, section.title)}
-                  completed={section.title === 'CART'}
+                  onFavorite={() =>
+                    this.handleFavorite(index, section.completedList)
+                  }
+                  onComplete={() =>
+                    this.handleComplete(index, section.completedList)
+                  }
+                  onDelete={() =>
+                    this.handleDelete(index, section.completedList)
+                  }
+                  completed={section.completedList}
                 />
               );
             }}
@@ -259,6 +298,7 @@ const styles = StyleSheet.create({
   border: {
     flex: 1,
     height: 1,
-    backgroundColor: '#d3d3d3'
+    backgroundColor: '#d3d3d3',
+    marginLeft: 20
   }
 });
