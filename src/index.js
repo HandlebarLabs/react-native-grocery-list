@@ -29,7 +29,10 @@ const initialState = {
   favoriteItems: [],
   nextItem: '',
   // Default to loading so an empty list isn't shown. Will only be shown very briefly.
-  loading: true
+  loading: true,
+  // We only want to show the user the delete nudge when they first get the app. Otherwise it's
+  // annoying
+  hasShownNudge: false
 };
 
 export default class App extends React.Component {
@@ -38,6 +41,7 @@ export default class App extends React.Component {
   componentDidMount() {
     // Once the component mounts rehydrate state from AsyncStorage.
     this.rehydrateItems();
+    this.setState({ hasShownNudge: true });
   }
 
   componentDidUpdate(prevProps, prevState) {
@@ -201,13 +205,20 @@ export default class App extends React.Component {
         // we want favorited items to live until they're not favorited, so don't use default setting
         favoriteItems: state.favoriteItems,
         // Loading is only used when rehydrating state from AsyncStorage
-        loading: false
+        loading: false,
+        hasShownNudge: true
       };
     });
   };
 
   render() {
-    const { nextItem, items, completedItems, loading } = this.state;
+    const {
+      nextItem,
+      items,
+      completedItems,
+      loading,
+      hasShownNudge
+    } = this.state;
 
     if (loading) {
       return <ActivityIndicator />;
@@ -252,7 +263,9 @@ export default class App extends React.Component {
                     this.handleDelete(index, section.completedList)
                   }
                   completed={section.completedList}
-                  nudgeOnLoad={!section.completedList && index === 0}
+                  nudgeOnLoad={
+                    !section.completedList && index === 0 && !hasShownNudge
+                  }
                 />
               );
             }}
