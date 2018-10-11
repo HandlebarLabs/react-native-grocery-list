@@ -18,6 +18,7 @@ import SAMPLE_DATA from './data/template';
 import ListItem from './components/ListItem';
 import SectionHeader from './components/SectionHeader';
 import Header from './components/Header';
+import DevLongPress from './components/DevLongPress';
 import debounce from './util/debounce';
 
 const STORAGE_KEY = 'GROCERY_LIST';
@@ -56,6 +57,7 @@ export default class App extends React.Component {
     // When using AsyncStorage the item value must be a string so we call JSON.stringify on
     // this.state. This is an expensive operation so we use debounce to only call this function
     // every 500 milliseconds.
+    console.log(this.state);
     AsyncStorage.setItem(
       STORAGE_KEY,
       JSON.stringify({
@@ -225,7 +227,13 @@ export default class App extends React.Component {
     }
 
     return (
-      <React.Fragment>
+      <DevLongPress
+        onLongPress={() => {
+          this.setState({ ...initialState, loading: false });
+          AsyncStorage.clear();
+          alert('App has been reset!');
+        }}
+      >
         <Header>
           <TextInput
             onChangeText={nextItem => this.setState({ nextItem })}
@@ -299,7 +307,7 @@ export default class App extends React.Component {
             }}
           />
         </SafeAreaView>
-      </React.Fragment>
+      </DevLongPress>
     );
   }
 }
